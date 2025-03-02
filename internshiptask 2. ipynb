@@ -1,0 +1,70 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score, mean_squared_error
+
+# Load Dataset
+file_path = "/content/Global_Superstore(CSV).csv"
+df = pd.read_csv(file_path)
+
+# Data Cleaning
+# Drop duplicates
+df.drop_duplicates(inplace=True)
+# Fill missing postal codes with mode
+df['Postal Code'].fillna(df['Postal Code'].mode()[0], inplace=True)
+# Convert dates to datetime format
+df['Order Date'] = pd.to_datetime(df['Order Date'], format="%m/%d/%Y")
+df['Ship Date'] = pd.to_datetime(df['Ship Date'], format="%m/%d/%Y")
+
+# Statistical Summary
+print(df[['Sales', 'Profit', 'Discount', 'Quantity', 'Shipping Cost']].describe())
+
+# Correlation Matrix
+plt.figure(figsize=(8,6))
+sns.heatmap(df[['Sales', 'Profit', 'Discount', 'Quantity', 'Shipping Cost']].corr(), annot=True, cmap='coolwarm', fmt=".2f")
+plt.title("Correlation Heatmap")
+plt.show()
+
+# Sales Trend Over Time
+sales_trend = df.groupby("Order Date")["Sales"].sum()
+plt.figure(figsize=(12,6))
+sales_trend.plot(color='blue', linewidth=2)
+plt.title("Sales Trend Over Time")
+plt.xlabel("Date")
+plt.ylabel("Total Sales")
+plt.grid(True)
+plt.show()
+
+# Profit vs Discount
+plt.figure(figsize=(8,6))
+sns.scatterplot(x=df["Discount"], y=df["Profit"], alpha=0.6, color="red")
+plt.title("Profit vs. Discount")
+plt.xlabel("Discount")
+plt.ylabel("Profit")
+plt.grid(True)
+plt.show()
+
+# Sales by Region & Category
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+sns.barplot(x=df["Region"], y=df["Sales"], estimator=sum, ci=None, palette="Blues", ax=axes[0])
+axes[0].set_title("Total Sales by Region")
+axes[0].set_xticklabels(axes[0].get_xticklabels(), rotation=45)
+df.groupby("Category")["Sales"].sum().plot.pie(autopct="%1.1f%%", colors=["skyblue", "lightcoral", "lightgreen"], ax=axes[1])
+axes[1].set_ylabel("")
+axes[1].set_title("Sales Distribution by Category")
+plt.tight_layout()
+plt.show()
+
+# Predictive Model: Linear Regression for Sales Prediction
+X = df[["Profit", "Discount"]]
+y = df["Sales"]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+model = LinearRegression()
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+r2 = r2_score(y_test, y_pred)
+mse = mean_squared_error(y_test, y_pred)
+print(f"R² Score: {r2:.2f}, Mean Squared Error: {mse:.2f}")
